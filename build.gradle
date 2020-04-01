@@ -1,0 +1,33 @@
+apply plugin: 'java'
+apply plugin: 'maven'
+
+group = 'com.moreapp'
+version = '1.0.0-SNAPSHOT'
+
+description = """MoreApp Java Starter Kit"""
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile group: 'org.springframework.security.oauth', name: 'spring-security-oauth', version: '1.0.5.RELEASE'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.4.0'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.3.1'
+    compile group: 'com.sparkjava', name: 'spark-core', version: '2.3'
+}
+
+task runExample(type: JavaExec) {
+    description "Run the Example class to connect to MoreApp and perform an API call."
+    classpath = sourceSets.main.runtimeClasspath
+    main = 'com.moreapp.starterkit.Example'
+}
+
+task runHookWebService(type: JavaExec) {
+    description "Run the Hook Web Service class to serve the web service as hook for MoreApp."
+    classpath = sourceSets.main.runtimeClasspath
+    main = 'com.moreapp.starterkit.hook.HookWebService'
+}

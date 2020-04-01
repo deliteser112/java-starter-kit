@@ -1,0 +1,32 @@
+{
+  "endpoint": {
+    "handle": "http://hookwebservice.localtunnel.me/handle",
+    "health": "http://hookwebservice.localtunnel.me/health",
+    "test": "http://hookwebservice.localtunnel.me/test",
+    "arguments": []
+  },
+  "permissions": [
+    "READ_RESOURCE"
+  ],
+  "configuration": [
+    {
+      "type" : "text",
+      "key" : "subject",
+      "defaultValue" : null,
+      "required" : true,
+      "name" : "Subject",
+      "description" : "Subject"
+    },
+    {
+      "type" : "textarea",
+      "key" : "message",
+      "defaultValue" : null,
+      "required" : true,
+      "name" : "Body",
+      "description" : "Email body with optional placeholders",
+      "configuration" : {
+        "rows" : 6
+      }
+    }
+  ]
+}
