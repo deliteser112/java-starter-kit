@@ -1,68 +1,58 @@
 package com.moreapp.starterkit;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import org.springframework.security.oauth.common.signature.SharedConsumerSecretImpl;
-import org.springframework.security.oauth.consumer.BaseProtectedResourceDetails;
-import org.springframework.security.oauth.consumer.client.OAuthRestTemplate;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 import java.io.IOException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 public class Example {
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final OkHttpClient HTTP_CLIENT = new OkHttpClient();
+
+    @SuppressWarnings("unchecked")
     public static void main(String[] args) throws IOException {
-        //Load the properties
-        Properties properties = new Properties();
+        final Properties properties = new Properties();
         properties.load(Example.class.getResourceAsStream("/com/moreapp/starterkit/api.properties"));
-        String endpoint = properties.getProperty("endpoint");
+        final String endpoint = properties.getProperty("endpoint");
+        final String apiKey = properties.getProperty("apiKey");
+        final String customerId = properties.getProperty("customerId");
 
-        //Prepare the client
-        OAuthRestTemplate oAuthRestTemplate = prepareClient(properties);
+        final Request request = new Request.Builder()
+                .url(endpoint + "/api/v1.0/forms/customer/" + customerId + "/folders?expand=forms")
+                .get()
+                .addHeader("X-API-KEY", apiKey)
+                .build();
 
-        //Make the API Call (get all customers)
-        ResponseEntity<Map[]> response = oAuthRestTemplate.getForEntity(endpoint + "/customers", Map[].class);
-        System.out.println("The response status is: " + response.getStatusCode());
-        if (response.getStatusCode().value() != 200) {
-            System.out.printf("Something went wrong please check the credentials and the API endpoint");
+        final Response response = HTTP_CLIENT.newCall(request).execute();
+
+        if (!response.isSuccessful()) {
+            final Map<String, Object> body = OBJECT_MAPPER.readValue(response.body().string(), Map.class);
+            final String message = (String) body.get("message");
+
+            System.err.println("Request failed: (" + response.code() + ") " + message);
             return;
         }
 
-        //Print the result
-        System.out.println("The customers are:");
-        Map[] customers = response.getBody();
-        for (Map customer : customers) {
-            System.out.println(" - " + customer.get("name"));
-        }
+        final List<Map<String, Object>> folders = OBJECT_MAPPER.readValue(response.body().string(), List.class);
 
-        // For more api calls and the response types ee http://developer.moreapp.com/#/apidoc.
-    }
+        System.out.println("Folders (and forms) for customer " + customerId + ":");
 
-    private static OAuthRestTemplate prepareClient(Properties properties) {
-        //Setup the credentials
-        BaseProtectedResourceDetails resource = new BaseProtectedResourceDetails();
-        resource.setConsumerKey(properties.getProperty("consumerKey"));
-        String consumerSecret = properties.getProperty("consumerSecret");
-        resource.setSharedSecret(new SharedConsumerSecretImpl(consumerSecret));
-        resource.setAuthorizationHeaderRealm("more");
+        folders.forEach((folder) -> {
+            final String folderName = ((Map<String, String>) folder.get("meta")).get("name");
 
-        OAuthRestTemplate oAuthRestTemplate = new OAuthRestTemplate(resource);
+            System.out.println(folderName);
 
-        //Add the Jackson message converter to parse the JSON response into Java objects.
-        MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
-        converter.setObjectMapper(new ObjectMapper());
-        List<HttpMessageConverter<?>> messageConverters = new ArrayList<HttpMessageConverter<?>>();
-        messageConverters.add(converter);
-        oAuthRestTemplate.setMessageConverters(messageConverters);
-
-        return oAuthRestTemplate;
+            final List<Map<String, Object>> forms = ((List<Map<String, Object>>) folder.get("forms"));
+            forms.forEach((form) -> {
+                final String formName = ((Map<String, String>) form.get("meta")).get("name");
+                System.out.println(" - " + formName);
+            });
+        });
     }
 }
